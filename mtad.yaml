@@ -1,0 +1,92 @@
+_schema-version: '3.1'
+version: 0.0.1
+ID: bookshop-mta
+description: "Multitenant Bookshop Spring Boot REST API"
+parameters:
+  enable-parallel-deployments: true
+modules:
+  # --------------------- APP MODULE ------------------------
+  - name: bookshop-mt-api
+    type: java
+    path: target/bookshop-0.0.1.jar
+    parameters:
+      memory: 1024M
+      keep-existing-routes: true
+    properties:
+      JBP_CONFIG_COMPONENTS: "jres: ['com.sap.xs.java.buildpack.jre.SAPMachineJRE']"
+      SPRING_PROFILES_ACTIVE: cloud
+      SAP_JWT_TRUST_ACL: '[{"clientid" : "*", "identityzone" : "*"}]'
+      JBP_CONFIG_DEBUG: '{enabled: true}'
+    requires:
+      - name: bookshop-mt-xsuaa
+      - name: bookshop-mt-saas-registry
+      - name: app-api
+      - name: bookshop-logs
+      - name: bookshop-db
+    provides:
+      - name: app-api
+        properties:
+          api-url: '${default-url}'
+
+  # --------------------- APPROUTER MODULE ---------------------
+  - name: bookshop-mt-app
+    type: nodejs
+    path: approuter
+    parameters:
+      memory: 256M
+      disk-quota: 512M
+      keep-existing-routes: true
+    properties:
+      TENANT_HOST_PATTERN: ^(.*)-dev-bookshop-mt-app-${default-domain}
+    requires:
+      - name: app-api
+        group: destinations
+        properties:
+          name: backend
+          url: ~{api-url}
+          forwardAuthToken: true
+      - name: bookshop-mt-xsuaa
+    provides:
+      - name: approuter-api
+        properties:
+          approuter-url: '${default-url}'
+          approuter-domain: '${domain}'
+
+# --------------------- RESOURCES ---------------------
+resources:
+  # ---------- XSUAA RESOURCE ----------
+  - name: bookshop-mt-xsuaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xsuaa/xs-security.json
+      config: # override xsappname as it needs to be unique
+        xsappname: bookshop-mt-${org}-${space}
+        oauth2-configuration:
+          redirect-uris:
+            - "http*://*.${default-domain}/**"
+    requires:
+      - name: approuter-api
+
+  # ---------- SAAS REGISTRY RESOURCE ----------
+  - name: bookshop-mt-saas-registry
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: saas-registry
+      service-plan: application
+      config:
+        appName: bookshop-mt-${org}-${space} # this is the text on the tile
+        xsappname: bookshop-mt-${org}-${space} # this is the value from xsuaa.parameters.config.xsappname
+        appUrls:
+          onSubscription: ~{app-api/api-url}/api/v1/callback/tenant/{tenantId}
+          callbackTimeoutMillis: 180000
+        displayName: bookshop-java
+        description: Bookshop Spring Boot REST API
+        category: 'Custom SaaS Applications'
+    requires:
+      - name: app-api
+  - name: bookshop-db
+    type: org.cloudfoundry.existing-service
+  - name: bookshop-logs
+    type: org.cloudfoundry.existing-service

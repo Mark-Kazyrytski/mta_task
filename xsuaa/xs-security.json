@@ -1,0 +1,54 @@
+{
+  "xsappname": "bookshop-java-public",
+  "tenant-mode": "shared",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.read",
+      "description": "With this scope set, USER can read content."
+    },
+    {
+      "name": "$XSAPPNAME.write",
+      "description": "With this scope set, USER can update content."
+    },
+    {
+      "name": "$XSAPPNAME.Callback",
+      "description": "With this scope set, the callbacks for tenant onboarding, offboarding and getDependencies can be called.",
+      "grant-as-authority-to-apps": [
+        "$XSAPPNAME(application,sap-provisioning,tenant-onboarding)"
+      ]
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "Viewer",
+      "description": "View content",
+      "scope-references": [
+        "$XSAPPNAME.read"
+      ]
+    },
+    {
+      "name": "Administrator",
+      "description": "View and update content",
+      "scope-references": [
+        "$XSAPPNAME.read",
+        "$XSAPPNAME.write"
+      ]
+    }
+  ],
+  "role-collections": [
+    {
+      "name": "Viewer",
+      "description": "Viewer (read)",
+      "role-template-references": [
+        "$XSAPPNAME.Viewer"
+      ]
+    },
+    {
+      "name": "Administrator",
+      "description": "Administrator (read and write)",
+      "role-template-references": [
+        "$XSAPPNAME.Administrator"
+      ]
+    }
+  ]
+}

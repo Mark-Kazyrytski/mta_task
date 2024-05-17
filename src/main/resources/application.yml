@@ -1,0 +1,8 @@
+spring:
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  jpa:
+    show-sql: true
+
+multitenant:
+  defaultTenant: public

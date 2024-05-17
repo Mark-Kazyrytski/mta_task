@@ -1,0 +1,10 @@
+db:
+  host: ${vcap.services.bookshop-db.credentials.hostname}
+  port: ${vcap.services.bookshop-db.credentials.port}
+  name: ${vcap.services.bookshop-db.credentials.dbname}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${db.host}:${db.port}/${db.name}
+    username: ${vcap.services.bookshop-db.credentials.username}
+    password: ${vcap.services.bookshop-db.credentials.password}
